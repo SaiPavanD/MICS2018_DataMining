@@ -21,7 +21,8 @@ def convert_pdf_to_txt_pagewise(path):
     for page in PDFPage.get_pages(fp, pagenos, maxpages=maxpages, password=password,caching=caching, check_extractable=True):
         interpreter.process_page(page)
         text += [retstr.getvalue()]
-        retstr.flush()
+        retstr.seek(0)
+        retstr.truncate()
 
     fp.close()
     device.close()
