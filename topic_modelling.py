@@ -1,4 +1,5 @@
 from nltk.corpus import stopwords
+from nltk.corpus import words
 from nltk.stem.wordnet import WordNetLemmatizer
 import string
 
@@ -7,13 +8,15 @@ from gensim import corpora
 
 import re
 
-import pickle
+from pdfextract import convert_pdf_to_txt_pagewise
 
 class topic_modelling:
-    def __init__(self, data):
-        self.__journal = [page.decode('utf-8','ignore') for page in data]
+    def __init__(self, path):
+        self.__journal = [page.decode('utf-8','ignore') for page in convert_pdf_to_txt_pagewise(path)]
         self.__articles = []
         self.__topic_head = []
+        self.__ldamodel = None
+        self.__doc_term_matrix = []
 
     def get_article_page_nos(self):
         contents_pages = []
@@ -100,7 +103,7 @@ class topic_modelling:
 
     def clean(self, article):
         stop = set(stopwords.words('english'))
-        stop.add('psychiatry', 'psychiatric', 'mental', 'illness', 'disease')
+        stop.add(('psychiatry', 'psychiatric', 'mental', 'illness', 'disease', 'lunacy', 'lunatic'))
         exclude = set(string.punctuation)
         lemma = WordNetLemmatizer()
         stop_free = ' '.join([i for i in article.lower().split() if i not in stop])
@@ -112,20 +115,15 @@ class topic_modelling:
         self.seperate_articles()
         articles_clean = [self.clean(article).split() for article in self.__articles]
         dictionary = corpora.Dictionary(articles_clean)
-        doc_term_matrix = [dictionary.doc2bow(article) for article in articles_clean]
+        self.__doc_term_matrix = [dictionary.doc2bow(article) for article in articles_clean]
 
         # Creating the object for LDA model using gensim library
         Lda = gensim.models.ldamodel.LdaModel
 
         # Running and Training LDA model on the document term matrix.
-        ldamodel = Lda(doc_term_matrix, num_topics=5, id2word = dictionary, passes=100)
+        self.__ldamodel = Lda(self.__doc_term_matrix, num_topics=5, id2word = dictionary, passes=100)
 
-        print ldamodel.print_topics(num_words=5, num_topics=5)
+        return self.__ldamodel.print_topics(num_words=20, num_topics=5)
 
-
-with open ('eg.txt', 'rb') as fp:
-    journal = pickle.load(fp)
-
-a = topic_modelling(journal)
-
-print a.get_topics()
+    def get_document_topics(self):
+        return zip(self.__topic_head,[self.__ldamodel.get_document_topics(bow) for bow in self.__doc_term_matrix])
