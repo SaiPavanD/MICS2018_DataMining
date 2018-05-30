@@ -62,6 +62,12 @@ class topic_modelling:
         article_pages = self.get_article_page_nos()
         page_map = self.get_page_map()
 
+        # if contents page is not there, assume each article
+        if len(article_pages) == 0:
+            article_pages = range(0, len(self.__journal), 10)
+        if len(self.__journal) - 1 not in article_pages:
+            article_pages += [len(self.__journal) - 1]
+
         for i in xrange(len(article_pages) - 1):
             begin = article_pages[i]
             end = article_pages[i+1]
@@ -103,7 +109,7 @@ class topic_modelling:
 
     def clean(self, article):
         stop = set(stopwords.words('english'))
-        stop.add(('psychiatry', 'psychiatric', 'mental', 'illness', 'disease', 'lunacy', 'lunatic'))
+        stop.add(('psychiatry', 'psychiatric', 'mental', 'illness', 'disease', 'lunacy', 'lunatic', 'insane', 'insanity'))
         exclude = set(string.punctuation)
         lemma = WordNetLemmatizer()
         stop_free = ' '.join([i for i in article.lower().split() if i not in stop])
